@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">AndroidERestaurant</string>
+    <string name="app_name">Muscle Rat\'s</string>
     <string-array name="entrees">
         <item>Entrée 1</item>
         <item>Entrée 2</item>

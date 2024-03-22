@@ -160,11 +160,11 @@ fun ScaffoldBasket(activity: BasketActivity) {
                 var cartItems = getCartItems(activity)
 
                 items(cartItemsState) { cartItem ->
-                    val totalItemPrice = remember {
+                    val totalItemPrice = remember(cartItem.dish.id) {
                         mutableFloatStateOf(cartItem.quantity * cartItem.dish.prices[0].price.toFloat())
                     }
 
-                    val itemQuantity = remember {
+                    val itemQuantity = remember(cartItem.dish.id) {
                         mutableIntStateOf(cartItem.quantity)
                     }
                     Row(
