@@ -41,11 +41,10 @@ fun getTotalCartItems(context: Context): Int {
 }
 
 fun isCartEmpty(context: Context): Boolean {
-    return getCartItemsCount(context).isEmpty()
+    return getTotalCartItems(context) == 0
 }
 
-fun ClearCart(context: Context) {
-    context.openFileOutput("cart.json", Context.MODE_PRIVATE).use {
-        it.write("".toByteArray())
-    }
+fun ClearCart(activity: BasketActivity) {
+    activity.openFileOutput("cart.json", Context.MODE_PRIVATE)
+        .use { it.write(Gson().toJson(emptyList<CartItem>()).toByteArray()) }
 }

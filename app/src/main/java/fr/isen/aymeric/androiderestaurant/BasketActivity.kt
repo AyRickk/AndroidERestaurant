@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -80,7 +81,16 @@ class BasketActivity : ComponentActivity() {
 fun ScaffoldBasket(activity: BasketActivity) {
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
-    val cartItemsState = remember { mutableStateListOf(*getCartItems(activity).toTypedArray()) }
+
+    val cartItemsState = remember { mutableStateListOf<CartItem>() }
+    cartItemsState.clear()
+    cartItemsState.addAll(getCartItemsFromJson(activity))
+
+    val cartSummaryState = remember { mutableStateOf(Pair(0, 0.0)) }
+    val updateTrigger = remember { mutableStateOf(false) }
+
+    updateCartSummaryState(activity, cartSummaryState)
+    val updateTriggerValue by updateTrigger
 
 
     Scaffold(
@@ -143,7 +153,7 @@ fun ScaffoldBasket(activity: BasketActivity) {
                     Text(
                         text = "Your basket is empty",
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                 }
             } else {
@@ -174,13 +184,23 @@ fun ScaffoldBasket(activity: BasketActivity) {
                                     .fillMaxWidth(),
                                 textAlign = TextAlign.Center
                             )
-                            Image(
-                                painter = rememberImagePainter(cartItem.dish.images[0]),
-                                contentDescription = "Localized description",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(150.dp)
-                            )
+                            if (cartItem.dish.images.isNotEmpty()) {
+                                Image(
+                                    painter = rememberImagePainter(cartItem.dish.images[0]),
+                                    contentDescription = "Localized description",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(150.dp)
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.drawable.fallback_image),
+                                    contentDescription = "Localized description",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(150.dp)
+                                )
+                            }
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -196,11 +216,16 @@ fun ScaffoldBasket(activity: BasketActivity) {
                                                 "cart.json",
                                                 Context.MODE_PRIVATE
                                             ).use {
-                                                it.write(Gson().toJson(cartItems).toByteArray())
+                                                it.write(
+                                                    Gson().toJson(cartItemsState.toList())
+                                                        .toByteArray()
+                                                )
                                             }
                                             itemQuantity.intValue = cartItem.quantity
                                             totalItemPrice.floatValue =
                                                 cartItem.quantity * cartItem.dish.prices[0].price.toFloat()
+                                            cartItemsState.clear()
+                                            cartItemsState.addAll(getCartItemsFromJson(activity))
                                         }
                                     },
                                     enabled = cartItem.quantity > 1
@@ -213,11 +238,16 @@ fun ScaffoldBasket(activity: BasketActivity) {
                                         cartItem.quantity += 1
                                         activity.openFileOutput("cart.json", Context.MODE_PRIVATE)
                                             .use {
-                                                it.write(Gson().toJson(cartItems).toByteArray())
+                                                it.write(
+                                                    Gson().toJson(cartItemsState.toList())
+                                                        .toByteArray()
+                                                )
                                             }
                                         itemQuantity.intValue = cartItem.quantity
                                         totalItemPrice.floatValue =
                                             cartItem.quantity * cartItem.dish.prices[0].price.toFloat()
+                                        cartItemsState.clear()
+                                        cartItemsState.addAll(getCartItemsFromJson(activity))
                                     }
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = "Increase")
@@ -234,14 +264,21 @@ fun ScaffoldBasket(activity: BasketActivity) {
                                 Text("Prix: ${totalItemPrice.floatValue} € (unité: ${cartItem.dish.prices[0].price} €)")
                                 IconButton(
                                     onClick = {
-                                        cartItemsState.remove(cartItem)
-                                        activity.openFileOutput("cart.json", Context.MODE_PRIVATE)
-                                            .use {
+                                        val index = cartItemsState.indexOf(cartItem)
+                                        if (index != -1) {
+                                            cartItemsState.removeAt(index)
+                                            activity.openFileOutput(
+                                                "cart.json",
+                                                Context.MODE_PRIVATE
+                                            ).use {
                                                 it.write(
                                                     Gson().toJson(cartItemsState.toList())
                                                         .toByteArray()
                                                 )
                                             }
+                                            cartItemsState.clear()
+                                            cartItemsState.addAll(getCartItemsFromJson(activity))
+                                        }
                                     }
                                 ) {
                                     Icon(Icons.Filled.Delete, contentDescription = "Remove")
@@ -254,37 +291,64 @@ fun ScaffoldBasket(activity: BasketActivity) {
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceEvenly
 
                 ) {
-                    Button(
-                        //clear cart
-                        onClick = {
-                            ClearCart(activity)
-                            cartItemsState.clear()
-                        },
-                    ) {
-                        Text(
-                            text = "Clear cart",
-                            textAlign = TextAlign.Center,
-                            color = Color.White
-                        )
-                    }
-                    Button(onClick = {
-                        // Open the OrderActivity
-                        val intent = Intent(activity, OrderActivity::class.java)
-                        activity.startActivity(intent)
-                    }) {
-                        Text(
-                            text = "Order : ${cartItemsState.sumBy { it.quantity }} items for ${cartItemsState.sumBy { it.quantity * it.dish.prices[0].price.toInt() }} €",
-                            textAlign = TextAlign.Center,
-                            color = Color.White
-                        )
+                    if (!isCartEmpty(activity)) {
+                        Button(
+                            onClick = {
+                                ClearCart(activity)
+                                cartItemsState.clear()
+                                cartItemsState.addAll(getCartItemsFromJson(activity))
+                            }
+                        ) {
+                            Text(
+                                text = "Clear cart",
+                                textAlign = TextAlign.Center,
+                                color = Color.White
+                            )
+                        }
+
+                        Button(onClick = {
+                            // Open the OrderActivity
+                            val intent = Intent(activity, OrderActivity::class.java)
+                            activity.startActivity(intent)
+                        }) {
+                            val totalItems = cartItemsState.sumBy { it.quantity }
+                            val totalPrice =
+                                cartItemsState.sumOf { it.quantity * it.dish.prices[0].price.toDouble() }
+                            Text(
+                                text = "Order : $totalItems items for $totalPrice €",
+                                textAlign = TextAlign.Center,
+                                color = Color.White
+                            )
+                        }
 
                     }
+
                 }
 
             }
         }
+    }
+}
+
+@Composable
+private fun updateCartSummaryState(
+    activity: BasketActivity,
+    cartSummaryState: MutableState<Pair<Int, Double>>
+) {
+    val cartItems = getCartItemsFromJson(activity)
+    val totalItems = cartItems.sumBy { it.quantity }
+    val totalPrice = cartItems.sumOf { it.quantity * it.dish.prices[0].price.toDouble() }
+    cartSummaryState.value = Pair(totalItems, totalPrice)
+}
+
+private fun getCartItemsFromJson(activity: BasketActivity): List<CartItem> {
+    val jsonString = activity.openFileInput("cart.json").bufferedReader().use { it.readText() }
+    return if (jsonString.isNotEmpty()) {
+        Gson().fromJson(jsonString, Array<CartItem>::class.java).toList()
+    } else {
+        emptyList()
     }
 }
