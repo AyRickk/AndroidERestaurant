@@ -16,6 +16,11 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+            android:name=".OrderActivity"
+            android:exported="false"
+            android:label="@string/title_activity_order"
+            android:theme="@style/Theme.AndroidERestaurant" />
+        <activity
             android:name=".BasketActivity"
             android:exported="false"
             android:label="@string/title_activity_basket"
@@ -35,12 +40,12 @@
             android:name=".CategoryActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.AndroidERestaurant"/>
+            android:theme="@style/Theme.AndroidERestaurant" />
         <activity
             android:name=".DetailsActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.AndroidERestaurant"/>
+            android:theme="@style/Theme.AndroidERestaurant" />
     </application>
 
 </manifest>

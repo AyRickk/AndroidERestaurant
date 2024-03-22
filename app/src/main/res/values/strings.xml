@@ -16,4 +16,5 @@
         <item>Dessert 3</item>
     </string-array>
     <string name="title_activity_basket">BasketActivity</string>
+    <string name="title_activity_order">OrderActivity</string>
 </resources>
