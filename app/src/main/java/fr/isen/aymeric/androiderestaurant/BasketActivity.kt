@@ -266,7 +266,8 @@ fun ScaffoldBasket(activity: BasketActivity) {
                     ) {
                         Text(
                             text = "Clear cart",
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            color = Color.White
                         )
                     }
                     Button(onClick = {
@@ -276,7 +277,8 @@ fun ScaffoldBasket(activity: BasketActivity) {
                     }) {
                         Text(
                             text = "Order : ${cartItemsState.sumBy { it.quantity }} items for ${cartItemsState.sumBy { it.quantity * it.dish.prices[0].price.toInt() }} €",
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            color = Color.White
                         )
 
                     }
